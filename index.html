@@ -3,97 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktives Phasendiagramm: Schmelzzigarre</title>
+    <title>Interaktives Phasendiagramm: Schmelzzigarre (V2)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
             color: #333;
         }
-        h1 { text-align: center; color: #2c3e50; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #666; margin-bottom: 25px; }
         .container {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 30px;
             justify-content: center;
-            margin-top: 20px;
+            align-items: flex-start;
         }
         .canvas-container {
             position: relative;
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
         }
         canvas {
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
             cursor: crosshair;
             display: block;
+            background-color: #ffffff;
         }
         .panel {
             flex: 1;
-            min-width: 300px;
+            min-width: 350px;
+            max-width: 450px;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
         }
         .data-group {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #edf2f7;
         }
-        .data-group h3 { margin: 0 0 8px 0; color: #2980b9; font-size: 1.1em; }
+        .data-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .data-group h3 { margin: 0 0 12px 0; color: #2b6cb0; font-size: 1.15em; border-left: 4px solid #3182ce; padding-left: 8px; }
         .data-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
+            margin: 6px 0;
+            font-size: 1.05em;
             font-variant-numeric: tabular-nums;
         }
-        .value { font-weight: bold; }
-        .highlight { color: #e74c3c; font-weight: bold; }
+        .value { font-weight: 600; color: #2d3748; }
+        .highlight { color: #dd6b20; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: #fffaf0; }
+        .state-liquid { color: #3182ce; background-color: #ebf8ff; }
+        .state-solid { color: #38a169; background-color: #f0fff4; }
+        .state-twophase { color: #e53e3e; background-color: #fff5f5; }
     </style>
 </head>
 <body>
 
-    <h1>Binäres Phasendiagramm (Vollständige Mischbarkeit)</h1>
-    <p style="text-align: center; color: #666;">Bewege die Maus über das Diagramm, um den Zustand und das Hebelgesetz live zu analysieren.</p>
+    <h1>Interaktives Binäres Phasendiagramm (Schmelzzigarre)</h1>
+    <p class="subtitle">Bewege deine Maus über das vergrößerte Diagramm. Im Zweiphasengebiet wird der Hebelarm (Konode) und das Hebelgesetz automatisch aktiviert.</p>
 
     <div class="container">
-        <!-- Diagramm -->
+        <!-- Größeres Diagramm (Canvas erhöht von 500x500 auf 700x650) -->
         <div class="canvas-container">
-            <canvas id="diagram" width="500" height="500"></canvas>
+            <canvas id="diagram" width="700" height="650"></canvas>
         </div>
 
         <!-- Datenanzeige -->
         <div class="panel">
             <div class="data-group">
-                <h3>Aktuelle Mausposition</h3>
-                <div class="data-row"><span>Zusammensetzung:</span><span class="value" id="pos-comp">-</span></div>
-                <div class="data-row"><span>Temperatur:</span><span class="value" id="pos-temp">-</span></div>
-                <div class="data-row"><span>Phase / Zustand:</span><span class="highlight" id="pos-state">Außerhalb</span></div>
+                <h3>Aktueller Zustand</h3>
+                <div class="data-row"><span>Temperatur (T):</span><span class="value" id="pos-temp">-</span></div>
+                <div class="data-row"><span>Zusammensetzung (Brutto):</span><span class="value" id="pos-comp">-</span></div>
+                <div class="data-row"><span>Phase / Gebiet:</span><span class="highlight" id="pos-state">Außerhalb</span></div>
             </div>
 
             <div id="lever-results" style="display: none;">
                 <div class="data-group">
                     <h3>Phasenanteile (Hebelgesetz)</h3>
-                    <div class="data-row"><span>Anteil Schmelze (Flüssig):</span><span class="value" id="share-liq">-</span></div>
-                    <div class="data-row"><span>Anteil Mischkristall (Fest):</span><span class="value" id="share-sol">-</span></div>
+                    <div class="data-row"><span>Anteil Schmelze (Flüssig, Schmelze):</span><span class="value" id="share-liq" style="color: #3182ce;">-</span></div>
+                    <div class="data-row"><span>Anteil Mischkristall (Fest, α):</span><span class="value" id="share-sol" style="color: #38a169;">-</span></div>
                 </div>
 
                 <div class="data-group">
-                    <h3>Zusammensetzung der Schmelze</h3>
-                    <div class="data-row"><span>Stoff A in Schmelze:</span><span class="value" id="comp-liq-a">-</span></div>
-                    <div class="data-row"><span>Stoff B in Schmelze:</span><span class="value" id="comp-liq-b">-</span></div>
+                    <h3>Zusammensetzung der Schmelze (L)</h3>
+                    <div class="data-row"><span>Komponente A in Schmelze:</span><span class="value" id="comp-liq-a">-</span></div>
+                    <div class="data-row"><span>Komponente B in Schmelze:</span><span class="value" id="comp-liq-b">-</span></div>
                 </div>
 
                 <div class="data-group">
-                    <h3>Zusammensetzung des Mischkristalls</h3>
-                    <div class="data-row"><span>Stoff A in Festphase:</span><span class="value" id="comp-sol-a">-</span></div>
-                    <div class="data-row"><span>Stoff B in Festphase:</span><span class="value" id="comp-sol-b">-</span></div>
+                    <h3>Zusammensetzung des Mischkristalls (α)</h3>
+                    <div class="data-row"><span>Komponente A in Festphase:</span><span class="value" id="comp-sol-a">-</span></div>
+                    <div class="data-row"><span>Komponente B in Festphase:</span><span class="value" id="comp-sol-b">-</span></div>
                 </div>
             </div>
         </div>
@@ -103,41 +115,43 @@
         const canvas = document.getElementById('diagram');
         const ctx = canvas.getContext('2d');
 
-        // Ränder für das Diagramm im Canvas
-        const padding = { top: 40, right: 40, bottom: 50, left: 60 };
+        // Optimierte Ränder für das größere Canvas
+        const padding = { top: 50, right: 50, bottom: 60, left: 70 };
         const graphWidth = canvas.width - padding.left - padding.right;
         const graphHeight = canvas.height - padding.top - padding.bottom;
 
-        // Definition des physikalischen Raums
-        const TA = 800;  // Schmelzpunkt A
-        const TB = 1200; // Schmelzpunkt B
+        // Thermodynamische Parameter
+        const TA = 800;  // Schmelzpunkt reines A
+        const TB = 1200; // Schmelzpunkt reines B
         const Tmin = 600;
         const Tmax = 1400;
 
-        // Mathematische Näherung der Linien (Schmelzzigarre)
-        // x ist der Anteil an B (0 bis 1)
+        // Korrigierte Schmelzzigarren-Gleichungen: Liquidus muss IMMER ÜBER Solidus liegen!
+        // x = Molenbruch / Anteil von B (0 bis 1)
         function getLiquidus(x) {
-            return TA + (TB - TA) * x - 80 * x * (1 - x);
+            return TA + (TB - TA) * x + 110 * x * (1 - x);
         }
 
         function getSolidus(x) {
-            return TA + (TB - TA) * x + 120 * x * (1 - x);
+            return TA + (TB - TA) * x - 90 * x * (1 - x);
         }
 
-        // Umrechnung von Pixeln in Werte
+        // Pixelkoordinaten in physikalische Werte umrechnen
         function pixelToVal(px, py) {
             const x = (px - padding.left) / graphWidth;
             const temp = Tmax - ((py - padding.top) / graphHeight) * (Tmax - Tmin);
             return { x: Math.max(0, Math.min(1, x)), temp: temp };
         }
 
-        // Finde X-Wert auf einer Kurve für eine gegebene Temperatur (Invertierung via Bisektion)
+        // Numerische Suche (Bisektion) für die Zusammensetzung bei gegebener Temperatur T auf einer Kurve
         function findXForT(temp, targetCurve) {
             let low = 0, high = 1;
-            for(let i=0; i<20; i++) {
+            if (temp < Math.min(TA, TB) - 100 || temp > Math.max(TA, TB) + 100) return 0;
+            
+            for(let i = 0; i < 24; i++) {
                 let mid = (low + high) / 2;
                 let tMid = targetCurve(mid);
-                if ((targetCurve(1) > targetCurve(0) && tMid > temp) || (targetCurve(1) < targetCurve(0) && tMid < temp)) {
+                if (tMid > temp) {
                     high = mid;
                 } else {
                     low = mid;
@@ -149,47 +163,59 @@
         function drawBaseGraph() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Achsen zeichnen
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(padding.left, padding.top, graphWidth, graphHeight);
-
-            // Gitterlinien & Achsenbeschriftung Y (Temperatur)
-            ctx.fillStyle = '#333';
-            ctx.font = '12px sans-serif';
+            // Hintergrund-Gitter zeichnen
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            
+            // Horizontale Temperatur-Linien
+            ctx.fillStyle = '#4a5568';
+            ctx.font = '13px sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             for (let t = Tmin; t <= Tmax; t += 100) {
                 const y = padding.top + graphHeight * (1 - (t - Tmin) / (Tmax - Tmin));
-                ctx.fillText(t + " °C", padding.left - 10, y);
-                ctx.strokeStyle = '#eee';
-                ctx.lineWidth = 1;
+                ctx.fillText(t + " °C", padding.left - 12, y);
+                
                 ctx.beginPath();
                 ctx.moveTo(padding.left, y);
                 ctx.lineTo(padding.left + graphWidth, y);
                 ctx.stroke();
             }
 
-            // Achsenbeschriftung X (Zusammensetzung)
+            // Vertikale Konzentrations-Linien
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            for (let xVal = 0; xVal <= 1; xVal += 0.2) {
+            for (let xVal = 0; xVal <= 1; xVal += 0.1) {
                 const x = padding.left + xVal * graphWidth;
-                ctx.fillText((xVal * 100).toFixed(0) + "%", x, padding.top + graphHeight + 8);
+                
+                ctx.beginPath();
+                ctx.moveTo(x, padding.top);
+                ctx.lineTo(x, padding.top + graphHeight);
+                ctx.stroke();
+
+                ctx.fillText((xVal * 100).toFixed(0) + "%", x, padding.top + graphHeight + 10);
             }
+
+            // Haupt-Achsenrahmen
+            ctx.strokeStyle = '#2d3748';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(padding.left, padding.top, graphWidth, graphHeight);
             
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillText("Anteil B ➔", padding.left + graphWidth/2, padding.top + graphHeight + 28);
+            // Achsen-Labels
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillStyle = '#1a202c';
+            ctx.fillText("Konzentration von Komponente B ➔", padding.left + graphWidth/2, padding.top + graphHeight + 35);
+            
             ctx.textAlign = 'left';
-            ctx.fillText("100% A", padding.left, padding.top + graphHeight + 28);
+            ctx.fillText("0% B (100% A)", padding.left, padding.top + graphHeight + 35);
             ctx.textAlign = 'right';
-            ctx.fillText("100% B", padding.left + graphWidth, padding.top + graphHeight + 28);
+            ctx.fillText("100% B (0% A)", padding.left + graphWidth, padding.top + graphHeight + 35);
 
             // Kurven zeichnen (Liquidus & Solidus)
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 3;
             
-            // Liquidus (Blau)
-            ctx.strokeStyle = '#2980b9';
+            // 1. Liquidus (Blau)
+            ctx.strokeStyle = '#3182ce';
             ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
                 let xVal = i / 100;
@@ -200,8 +226,8 @@
             }
             ctx.stroke();
 
-            // Solidus (Rot)
-            ctx.strokeStyle = '#27ae60';
+            // 2. Solidus (Grün)
+            ctx.strokeStyle = '#38a169';
             ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
                 let xVal = i / 100;
@@ -212,12 +238,21 @@
             }
             ctx.stroke();
 
-            // Textbeschriftungen im Diagramm
-            ctx.fillStyle = '#7f8c8d';
-            ctx.font = 'italic 14px sans-serif';
-            ctx.fillText("Schmelze (L)", padding.left + 50, padding.top + 40);
-            ctx.fillText("Mischkristall (α)", padding.left + graphWidth - 140, padding.top + graphHeight - 40);
-            ctx.fillText("L + α", padding.left + graphWidth/2 - 15, padding.top + graphHeight/2);
+            // PHASENBESCHRIFTUNGEN OHNE ÜBERLAPPUNG
+            ctx.font = 'bold 15px sans-serif';
+            
+            // Schmelze weit oben platzieren
+            ctx.fillStyle = '#2b6cb0';
+            ctx.textAlign = 'center';
+            ctx.fillText("Schmelze (Einphasig Flüssig L)", padding.left + graphWidth / 2, padding.top + 30);
+            
+            // Mischkristall weit unten platzieren
+            ctx.fillStyle = '#276749';
+            ctx.fillText("Mischkristall (Einphasig Fest α)", padding.left + graphWidth / 2, padding.top + graphHeight - 40);
+            
+            // Zweiphasengebiet direkt im Zentrum des Linsensystems beschriftet
+            ctx.fillStyle = '#9b2c2c';
+            ctx.fillText("Zweiphasengebiet (Schmelze L + α)", padding.left + graphWidth / 2, padding.top + graphHeight / 2 - 5);
         }
 
         function handleMouseMove(e) {
@@ -225,12 +260,13 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // Prüfen ob die Maus im Diagrammbereich ist
             if (mouseX < padding.left || mouseX > padding.left + graphWidth ||
                 mouseY < padding.top || mouseY > padding.top + graphHeight) {
                 drawBaseGraph();
                 document.getElementById('lever-results').style.display = 'none';
-                document.getElementById('pos-state').innerText = "Außerhalb";
+                const stateEl = document.getElementById('pos-state');
+                stateEl.innerText = "Außerhalb";
+                stateEl.className = "highlight";
                 return;
             }
 
@@ -238,83 +274,86 @@
             const currentX = data.x;
             const currentT = data.temp;
 
-            // Grenzen für aktuelle Temperatur holen
-            const tMinZigarre = Math.min(TA, TB);
-            const tMaxZigarre = Math.max(TA, TB);
-
-            let state = "";
-            let inTwoPhase = false;
-            let xL = 0, xS = 0;
-
-            // Zustand bestimmen basierend auf Kurvenwerten bei diesem X
             const tLiqAtX = getLiquidus(currentX);
             const tSolAtX = getSolidus(currentX);
 
+            let stateStr = "";
+            let stateClass = "";
+            let inTwoPhase = false;
+            let xL = 0, xS = 0;
+
             if (currentT > tLiqAtX) {
-                state = "Schmelze (Einphasig flüssig)";
+                stateStr = "Schmelze (Flüssig)";
+                stateClass = "highlight state-liquid";
             } else if (currentT < tSolAtX) {
-                state = "Mischkristall (Einphasig fest)";
+                stateStr = "Mischkristall (Fest α)";
+                stateClass = "highlight state-solid";
             } else {
-                state = "Zweiphasengebiet (Löslichkeitslücke)";
+                stateStr = "Zweiphasengebiet (L + α)";
+                stateClass = "highlight state-twophase";
                 inTwoPhase = true;
-                // Konoden-Endpunkte bei konstanter Temperatur T berechnen
+                
                 xL = findXForT(currentT, getLiquidus);
                 xS = findXForT(currentT, getSolidus);
             }
 
-            // UI updaten
-            document.getElementById('pos-comp').innerText = `A: ${(100 - currentX*100).toFixed(1)}% | B: ${(currentX*100).toFixed(1)}%`;
             document.getElementById('pos-temp').innerText = `${currentT.toFixed(1)} °C`;
-            document.getElementById('pos-state').innerText = state;
-
-            // Zeichnen erneuern
-            drawBaseGraph();
-
-            // Fadenkreuz zeichnen
-            ctx.strokeStyle = '#95a5a6';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 4]);
+            document.getElementById('pos-comp').innerText = `A: ${(100 - currentX*100).toFixed(1)}% | B: ${(currentX*100).toFixed(1)}%`;
             
-            // Vertikale Linie zur X-Achse
-            ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX, padding.top + graphHeight); ctx.stroke();
-            // Horizontale Linie zur Y-Achse (wenn einphasig)
-            if(!inTwoPhase) {
-                ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(padding.left, mouseY); ctx.stroke();
-            }
-            ctx.setLineDash([]);
+            const stateEl = document.getElementById('pos-state');
+            stateEl.innerText = stateStr;
+            stateEl.className = stateClass;
+
+            drawBaseGraph();
 
             if (inTwoPhase) {
                 document.getElementById('lever-results').style.display = 'block';
 
-                // Hebelarm-Pixel berechnen
                 const pxL = padding.left + xL * graphWidth;
                 const pxS = padding.left + xS * graphWidth;
 
-                // Konode (Hebel) zeichnen
-                ctx.strokeStyle = '#e74c3c';
-                ctx.lineWidth = 3;
+                // 1. Ganzer Hebelarm (Konode) zeichnen
+                ctx.strokeStyle = '#e53e3e';
+                ctx.lineWidth = 4;
                 ctx.beginPath();
                 ctx.moveTo(pxL, mouseY);
                 ctx.lineTo(pxS, mouseY);
                 ctx.stroke();
 
-                // Schnittpunkte markieren
-                ctx.fillStyle = '#2980b9';
-                ctx.beginPath(); ctx.arc(pxL, mouseY, 5, 0, 2*Math.PI); ctx.fill();
-                ctx.fillStyle = '#27ae60';
-                ctx.beginPath(); ctx.arc(pxS, mouseY, 5, 0, 2*Math.PI); ctx.fill();
+                // 2. Vertikale Projektionen zur X-Achse zeichnen
+                ctx.strokeStyle = '#a0aec0';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 5]);
+                
+                ctx.beginPath(); ctx.moveTo(pxL, mouseY); ctx.lineTo(pxL, padding.top + graphHeight); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pxS, mouseY); ctx.lineTo(pxS, padding.top + graphHeight); ctx.stroke();
+                
+                ctx.strokeStyle = '#4a5568';
+                ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX, padding.top + graphHeight); ctx.stroke();
+                ctx.setLineDash([]);
 
-                // Hebelgesetz-Rechnung
-                // Anteil Phase = Gegenüberliegender Hebel / Gesamtlänge
-                const totalLength = Math.abs(xS - xL);
-                let shareLiquid = (xS - currentX) / totalLength;
-                let shareSolid = (currentX - xL) / totalLength;
+                // 3. Markierungspunkte an den Linsengrenzen
+                ctx.fillStyle = '#3182ce'; 
+                ctx.beginPath(); ctx.arc(pxL, mouseY, 6, 0, 2*Math.PI); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
 
-                // Prozentuale Anteile absichern gegen Rundungsfehler am Rand
-                shareLiquid = Math.max(0, Math.min(1, shareLiquid)) * 100;
-                shareSolid = Math.max(0, Math.min(1, shareSolid)) * 100;
+                ctx.fillStyle = '#38a169'; 
+                ctx.beginPath(); ctx.arc(pxS, mouseY, 6, 0, 2*Math.PI); ctx.fill();
+                ctx.stroke();
 
-                // DOM Updates
+                // 4. Hebelgesetz-Rechnung
+                const totalLength = xS - xL;
+                let shareLiquid = 0;
+                let shareSolid = 0;
+
+                if (totalLength > 0) {
+                    shareLiquid = ((xS - currentX) / totalLength) * 100;
+                    shareSolid = ((currentX - xL) / totalLength) * 100;
+                    
+                    shareLiquid = Math.max(0, Math.min(100, shareLiquid));
+                    shareSolid = Math.max(0, Math.min(100, shareSolid));
+                }
+
                 document.getElementById('share-liq').innerText = `${shareLiquid.toFixed(1)}%`;
                 document.getElementById('share-sol').innerText = `${shareSolid.toFixed(1)}%`;
 
@@ -323,23 +362,32 @@
 
                 document.getElementById('comp-sol-a').innerText = `${((1 - xS) * 100).toFixed(1)}%`;
                 document.getElementById('comp-sol-b').innerText = `${(xS * 100).toFixed(1)}%`;
+
             } else {
                 document.getElementById('lever-results').style.display = 'none';
+
+                ctx.strokeStyle = '#cbd5e0';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                
+                ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(padding.left, mouseY); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX, padding.top + graphHeight); ctx.stroke();
+                ctx.setLineDash([]);
             }
 
-            // Aktueller Mauspunkt
-            ctx.fillStyle = '#34495e';
-            ctx.beginPath(); ctx.arc(mouseX, mouseY, 4, 0, 2*Math.PI); ctx.fill();
+            ctx.fillStyle = '#1a202c';
+            ctx.beginPath(); ctx.arc(mouseX, mouseY, 5, 0, 2*Math.PI); ctx.fill();
         }
 
         canvas.addEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mouseleave', () => {
             drawBaseGraph();
             document.getElementById('lever-results').style.display = 'none';
-            document.getElementById('pos-state').innerText = "Außerhalb";
+            const stateEl = document.getElementById('pos-state');
+            stateEl.innerText = "Außerhalb";
+            stateEl.className = "highlight";
         });
 
-        // Initiale Ausführung
         drawBaseGraph();
     </script>
 </body>
