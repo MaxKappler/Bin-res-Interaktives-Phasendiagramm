@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V5)</title>
+    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V6)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -70,10 +70,9 @@
         .state-solid { color: #38a169; background-color: #f0fff4; }
         .state-twophase { color: #e53e3e; background-color: #fff5f5; }
         
-        /* WICHTIG: Feste Höhe & sanfte Deckkraft-Steuerung verhindert jegliches Ruckeln/Springen des Layouts */
         #lever-results {
             transition: opacity 0.2s ease;
-            height: 220px; /* Reserviert den Platz permanent */
+            height: 220px; 
             overflow: hidden;
         }
         .hidden-data {
@@ -133,7 +132,6 @@
                     <div class="data-row"><span>Phase / Gebiet:</span><span class="highlight" id="pos-state">Außerhalb</span></div>
                 </div>
 
-                <!-- Platzhalter bleibt statisch im Layout stehen, wechselt nur die Opacity -->
                 <div id="lever-results" class="hidden-data">
                     <div class="data-group">
                         <h3>Phasenanteile (Hebelgesetz)</h3>
@@ -197,7 +195,7 @@
         function findXForT(temp, targetCurve) {
             let low = 0, high = 1;
             if (temp < Math.min(TA, TB) - 150 || temp > Math.max(TA, TB) + 150) return 0;
-            for(let i = 0; i < 28; i++) { // Präzision leicht erhöht für nahtlosen Übergang
+            for(let i = 0; i < 28; i++) { 
                 let mid = (low + high) / 2;
                 if (targetCurve(mid) > temp) high = mid; else low = mid;
             }
@@ -263,7 +261,6 @@
             const h = microCanvas.height;
             mCtx.clearRect(0, 0, w, h);
 
-            // Abrunden, um mathematische Mikroruckler beim Rendern auszugleichen
             let factor = Math.max(0, Math.min(1, solidShare / 100));
 
             if (state === 'liquid' || factor <= 0.005) {
@@ -305,7 +302,7 @@
         function updateSimulation(px, py) {
             const data = pixelToVal(px, py);
             const currentX = data.x;
-            const currentT = data.temp;
+            const dataTemp = data.temp;
 
             const tLiqAtX = getLiquidus(currentX);
             const tSolAtX = getSolidus(currentX);
@@ -315,19 +312,18 @@
             let xL = 0, xS = 0;
             let shareSolid = 0, shareLiquid = 100;
 
-            // Schwellenwert-Toleranz gegen Ruckeln an den Grenzen
-            if (currentT >= tLiqAtX) {
+            if (dataTemp >= tLiqAtX) {
                 stateStr = "Schmelze (Flüssig)"; stateClass = "highlight state-liquid"; microState = "liquid";
-            } else if (currentT <= tSolAtX) {
+            } else if (dataTemp <= tSolAtX) {
                 stateStr = "Mischkristall (Fest α)"; stateClass = "highlight state-solid"; microState = "solid"; shareSolid = 100; shareLiquid = 0;
             } else {
                 stateStr = "Zweiphasengebiet (L + α)"; stateClass = "highlight state-twophase"; microState = "twophase";
                 inTwoPhase = true;
-                xL = findXForT(currentT, getLiquidus);
-                xS = findXForT(currentT, getSolidus);
+                xL = findXForT(dataTemp, getLiquidus);
+                xS = findXForT(dataTemp, getSolidus);
             }
 
-            document.getElementById('pos-temp').innerText = `${currentT.toFixed(1)} °C`;
+            document.getElementById('pos-temp').innerText = `${dataTemp.toFixed(1)} °C`;
             document.getElementById('pos-comp').innerText = `A: ${(100 - currentX*100).toFixed(1)}% | B: ${(currentX*100).toFixed(1)}%`;
             
             const stateEl = document.getElementById('pos-state');
@@ -338,7 +334,6 @@
             const leverPanel = document.getElementById('lever-results');
 
             if (inTwoPhase) {
-                // Hebelgesetz aktivieren (Einblenden ohne Ruckeln)
                 leverPanel.className = "";
                 
                 const pxL = padding.left + xL * graphWidth;
@@ -363,7 +358,6 @@
                     shareLiquid = ((xS - currentX) / totalLength) * 100;
                     shareSolid = ((currentX - xL) / totalLength) * 100;
                     
-                    // Exakter, sauberer Übergangsbereich
                     if(shareLiquid > 99.9) { shareLiquid = 100; shareSolid = 0; }
                     if(shareSolid > 99.9) { shareSolid = 100; shareLiquid = 0; }
                 }
@@ -375,7 +369,6 @@
                 document.getElementById('comp-sol-a').innerText = `${((1 - xS) * 100).toFixed(1)}%`;
                 document.getElementById('comp-sol-b').innerText = `${(xS * 100).toFixed(1)}%`;
             } else {
-                // Ausgrauen statt Löschen verhindert Layout-Sprünge komplett
                 leverPanel.className = "hidden-data";
                 
                 ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
@@ -383,7 +376,6 @@
                 ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, padding.top + graphHeight); ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Werte im ausgegrauten Zustand leeren
                 document.getElementById('share-liq').innerText = "-";
                 document.getElementById('share-sol').innerText = "-";
                 document.getElementById('comp-liq-a').innerText = "-";
