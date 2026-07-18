@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V4)</title>
+    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V5)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,7 +16,6 @@
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; font-size: 1.8em; }
         p.subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 0.95em; }
         
-        /* Neues Drei-Spalten-Layout für optimale Sichtbarkeit auf einen Blick */
         .container {
             display: flex;
             flex-wrap: wrap;
@@ -37,12 +36,11 @@
         }
         #diagram { cursor: crosshair; }
         
-        /* Rechte Spalte teilt sich in Gefüge und Daten auf */
         .side-panel {
             display: flex;
             flex-direction: column;
             gap: 20px;
-            min-width: 320px;
+            min-width: 340px;
             max-width: 380px;
             flex: 1;
         }
@@ -71,6 +69,17 @@
         .state-liquid { color: #3182ce; background-color: #ebf8ff; }
         .state-solid { color: #38a169; background-color: #f0fff4; }
         .state-twophase { color: #e53e3e; background-color: #fff5f5; }
+        
+        /* WICHTIG: Feste Höhe & sanfte Deckkraft-Steuerung verhindert jegliches Ruckeln/Springen des Layouts */
+        #lever-results {
+            transition: opacity 0.2s ease;
+            height: 220px; /* Reserviert den Platz permanent */
+            overflow: hidden;
+        }
+        .hidden-data {
+            opacity: 0.2;
+            pointer-events: none;
+        }
         
         .microstructure-box {
             display: flex;
@@ -105,21 +114,17 @@
     <p class="subtitle"><strong>Bedienung:</strong> Maus bewegen zur Live-Analyse. <strong>Klicken</strong> friert den aktuellen Punkt ein / taut ihn wieder auf.</p>
 
     <div class="container">
-        <!-- Phasendiagramm (Leicht kompakter skaliert für bessere Gesamtsichtbarkeit) -->
         <div class="canvas-container">
             <canvas id="diagram" width="650" height="550"></canvas>
             <div id="freeze-msg" class="freeze-notice">⚠️ ZUSTAND EINGEFROREN – Klicke erneut ins Diagramm zum Lösen</div>
         </div>
 
-        <!-- Rechte Steuerung: Gefüge und Daten direkt untereinander -->
         <div class="side-panel">
-            <!-- Mikroskop-Ansicht -->
             <div class="microstructure-box">
                 <h4>Gefügebild (L / α-Kristallite)</h4>
                 <canvas id="microstructureCanvas" width="180" height="180"></canvas>
             </div>
 
-            <!-- Analysedaten -->
             <div class="panel">
                 <div class="data-group">
                     <h3>Aktueller Zustand</h3>
@@ -128,7 +133,8 @@
                     <div class="data-row"><span>Phase / Gebiet:</span><span class="highlight" id="pos-state">Außerhalb</span></div>
                 </div>
 
-                <div id="lever-results" style="display: none;">
+                <!-- Platzhalter bleibt statisch im Layout stehen, wechselt nur die Opacity -->
+                <div id="lever-results" class="hidden-data">
                     <div class="data-group">
                         <h3>Phasenanteile (Hebelgesetz)</h3>
                         <div class="data-row"><span>Anteil Schmelze (L):</span><span class="value" id="share-liq" style="color: #3182ce;">-</span></div>
@@ -166,13 +172,10 @@
         const Tmin = 600;
         const Tmax = 1400;
 
-        // Zustandsspeicher für das Einfrieren
         let isFrozen = false;
         let frozenCoords = { x: 0, y: 0 };
         let lastMouseCoords = { x: 0, y: 0 };
 
-        // Definition der polygonalen Körner (Reale Korngrenzen-Geometrie)
-        // Jedes Korn wächst aus seinem Zentrum (cx, cy) zu den vordefinierten Eckpunkten
         const grains = [
             { cx: 50, cy: 55, poly: [[0,60], [50,55], [45,100], [0,120]] },
             { cx: 90, cy: 35, poly: [[50,55], [90,35], [135,45], [140,90], [90,95], [45,100]] },
@@ -193,8 +196,8 @@
 
         function findXForT(temp, targetCurve) {
             let low = 0, high = 1;
-            if (temp < Math.min(TA, TB) - 100 || temp > Math.max(TA, TB) + 100) return 0;
-            for(let i = 0; i < 24; i++) {
+            if (temp < Math.min(TA, TB) - 150 || temp > Math.max(TA, TB) + 150) return 0;
+            for(let i = 0; i < 28; i++) { // Präzision leicht erhöht für nahtlosen Übergang
                 let mid = (low + high) / 2;
                 if (targetCurve(mid) > temp) high = mid; else low = mid;
             }
@@ -206,15 +209,13 @@
             ctx.strokeStyle = '#f0f0f0';
             ctx.lineWidth = 1;
             
-            // Y-Achse
-            ctx.fillStyle = '#4a5568'; ctx.font = '12px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
             for (let t = Tmin; t <= Tmax; t += 100) {
                 const y = padding.top + graphHeight * (1 - (t - Tmin) / (Tmax - Tmin));
+                ctx.fillStyle = '#4a5568'; ctx.font = '12px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
                 ctx.fillText(t + " °C", padding.left - 10, y);
                 ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(padding.left + graphWidth, y); ctx.stroke();
             }
 
-            // X-Achse
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
             for (let xVal = 0; xVal <= 1; xVal += 0.1) {
                 const x = padding.left + xVal * graphWidth;
@@ -230,9 +231,8 @@
             ctx.textAlign = 'left'; ctx.fillText("0% B (100% A)", padding.left, padding.top + graphHeight + 32);
             ctx.textAlign = 'right'; ctx.fillText("100% B (0% A)", padding.left + graphWidth, padding.top + graphHeight + 32);
 
-            // Kurven
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#3182ce'; ctx.beginPath();
+            // Liquidus
+            ctx.lineWidth = 2.5; ctx.strokeStyle = '#3182ce'; ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
                 let px = padding.left + (i/100) * graphWidth;
                 let py = padding.top + graphHeight * (1 - (getLiquidus(i/100) - Tmin) / (Tmax - Tmin));
@@ -240,6 +240,7 @@
             }
             ctx.stroke();
 
+            // Solidus
             ctx.strokeStyle = '#38a169'; ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
                 let px = padding.left + (i/100) * graphWidth;
@@ -248,7 +249,6 @@
             }
             ctx.stroke();
 
-            // Beschriftungen
             ctx.font = 'bold 14px sans-serif';
             ctx.fillStyle = '#2b6cb0'; ctx.textAlign = 'center';
             ctx.fillText("Schmelze (L)", padding.left + graphWidth / 2, padding.top + 25);
@@ -258,52 +258,22 @@
             ctx.fillText("Zweiphasengebiet (L + α)", padding.left + graphWidth / 2, padding.top + graphHeight / 2 - 5);
         }
 
-        // REALSITISCHES KORNWACHSTUM (Interpolation zum finalen Umriss)
         function drawMicrostructure(state, solidShare) {
             const w = microCanvas.width;
             const h = microCanvas.height;
             mCtx.clearRect(0, 0, w, h);
 
-            if (state === 'liquid') {
-                // Reine hellblaue Schmelze ohne störende Linien
+            // Abrunden, um mathematische Mikroruckler beim Rendern auszugleichen
+            let factor = Math.max(0, Math.min(1, solidShare / 100));
+
+            if (state === 'liquid' || factor <= 0.005) {
                 mCtx.fillStyle = '#dbeafe';
                 mCtx.fillRect(0, 0, w, h);
             } 
-            else if (state === 'twophase') {
-                // Blaue flüssige Matrix im Hintergrund
-                mCtx.fillStyle = '#dbeafe';
-                mCtx.fillRect(0, 0, w, h);
-
-                const factor = solidShare / 100; // Wachstumsfortschritt
-
-                // Zeichne jedes Korn interpoliert zwischen seinem Kernzentrum und seiner finalen Grenze
-                grains.forEach(g => {
-                    mCtx.fillStyle = '#a7f3d0';
-                    mCtx.strokeStyle = '#059669';
-                    mCtx.lineWidth = 1.5;
-                    mCtx.beginPath();
-
-                    g.poly.forEach((pt, idx) => {
-                        // Vektorielle lineare Verschiebung vom Zentrum cx/cy hin zum echten Grenzpunkt
-                        let targetX = g.cx + (pt[0] - g.cx) * factor;
-                        let targetY = g.cy + (pt[1] - g.cy) * factor;
-
-                        if (idx === 0) mCtx.moveTo(targetX, targetY);
-                        else mCtx.lineTo(targetX, targetY);
-                    });
-
-                    mCtx.closePath();
-                    mCtx.fill();
-                    mCtx.stroke();
-                });
-            } 
-            else if (state === 'solid') {
-                // Vollständig erstarrtes Polyedergefüge (Körner stoßen lückenlos aneinander)
+            else if (state === 'solid' || factor >= 0.995) {
                 mCtx.fillStyle = '#a7f3d0';
                 mCtx.fillRect(0, 0, w, h);
-                
-                mCtx.strokeStyle = '#047857';
-                mCtx.lineWidth = 2;
+                mCtx.strokeStyle = '#047857'; mCtx.lineWidth = 2;
                 
                 grains.forEach(g => {
                     mCtx.beginPath();
@@ -311,12 +281,24 @@
                         if (idx === 0) mCtx.moveTo(pt[0], pt[1]);
                         else mCtx.lineTo(pt[0], pt[1]);
                     });
-                    mCtx.closePath();
-                    mCtx.stroke();
+                    mCtx.closePath(); mCtx.stroke();
                 });
-            } else {
-                mCtx.fillStyle = '#e2e8f0';
+            } 
+            else {
+                mCtx.fillStyle = '#dbeafe';
                 mCtx.fillRect(0, 0, w, h);
+
+                grains.forEach(g => {
+                    mCtx.fillStyle = '#a7f3d0'; mCtx.strokeStyle = '#059669'; mCtx.lineWidth = 1.5;
+                    mCtx.beginPath();
+                    g.poly.forEach((pt, idx) => {
+                        let targetX = g.cx + (pt[0] - g.cx) * factor;
+                        let targetY = g.cy + (pt[1] - g.cy) * factor;
+                        if (idx === 0) mCtx.moveTo(targetX, targetY);
+                        else mCtx.lineTo(targetX, targetY);
+                    });
+                    mCtx.closePath(); mCtx.fill(); mCtx.stroke();
+                });
             }
         }
 
@@ -333,10 +315,11 @@
             let xL = 0, xS = 0;
             let shareSolid = 0, shareLiquid = 100;
 
-            if (currentT > tLiqAtX) {
+            // Schwellenwert-Toleranz gegen Ruckeln an den Grenzen
+            if (currentT >= tLiqAtX) {
                 stateStr = "Schmelze (Flüssig)"; stateClass = "highlight state-liquid"; microState = "liquid";
-            } else if (currentT < tSolAtX) {
-                stateStr = "Mischkristall (Fest α)"; stateClass = "highlight state-solid"; microState = "solid"; shareSolid = 100;
+            } else if (currentT <= tSolAtX) {
+                stateStr = "Mischkristall (Fest α)"; stateClass = "highlight state-solid"; microState = "solid"; shareSolid = 100; shareLiquid = 0;
             } else {
                 stateStr = "Zweiphasengebiet (L + α)"; stateClass = "highlight state-twophase"; microState = "twophase";
                 inTwoPhase = true;
@@ -352,9 +335,12 @@
 
             drawBaseGraph();
 
-            // Visualisierung Hebelarm
+            const leverPanel = document.getElementById('lever-results');
+
             if (inTwoPhase) {
-                document.getElementById('lever-results').style.display = 'block';
+                // Hebelgesetz aktivieren (Einblenden ohne Ruckeln)
+                leverPanel.className = "";
+                
                 const pxL = padding.left + xL * graphWidth;
                 const pxS = padding.left + xS * graphWidth;
 
@@ -376,8 +362,10 @@
                 if (totalLength > 0) {
                     shareLiquid = ((xS - currentX) / totalLength) * 100;
                     shareSolid = ((currentX - xL) / totalLength) * 100;
-                    shareLiquid = Math.max(0, Math.min(100, shareLiquid));
-                    shareSolid = Math.max(0, Math.min(100, shareSolid));
+                    
+                    // Exakter, sauberer Übergangsbereich
+                    if(shareLiquid > 99.9) { shareLiquid = 100; shareSolid = 0; }
+                    if(shareSolid > 99.9) { shareSolid = 100; shareLiquid = 0; }
                 }
 
                 document.getElementById('share-liq').innerText = `${shareLiquid.toFixed(1)}%`;
@@ -387,14 +375,23 @@
                 document.getElementById('comp-sol-a').innerText = `${((1 - xS) * 100).toFixed(1)}%`;
                 document.getElementById('comp-sol-b').innerText = `${(xS * 100).toFixed(1)}%`;
             } else {
-                document.getElementById('lever-results').style.display = 'none';
+                // Ausgrauen statt Löschen verhindert Layout-Sprünge komplett
+                leverPanel.className = "hidden-data";
+                
                 ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
                 ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(padding.left, py); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, padding.top + graphHeight); ctx.stroke();
                 ctx.setLineDash([]);
+                
+                // Werte im ausgegrauten Zustand leeren
+                document.getElementById('share-liq').innerText = "-";
+                document.getElementById('share-sol').innerText = "-";
+                document.getElementById('comp-liq-a').innerText = "-";
+                document.getElementById('comp-liq-b').innerText = "-";
+                document.getElementById('comp-sol-a').innerText = "-";
+                document.getElementById('comp-sol-b').innerText = "-";
             }
 
-            // Markierung des aktuellen / gefrorenen Punktes
             if (isFrozen) {
                 ctx.strokeStyle = '#e53e3e'; ctx.lineWidth = 2; ctx.fillStyle = 'rgba(229, 62, 62, 0.3)';
                 ctx.beginPath(); ctx.arc(px, py, 8, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
@@ -405,7 +402,6 @@
             drawMicrostructure(microState, shareSolid);
         }
 
-        // Event-Handling
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             lastMouseCoords.x = e.clientX - rect.left;
@@ -424,7 +420,6 @@
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            // Klick nur werten wenn innerhalb des Koordinatensystems
             if (clickX >= padding.left && clickX <= padding.left + graphWidth &&
                 clickY >= padding.top && clickY <= padding.top + graphHeight) {
                 
@@ -446,7 +441,7 @@
         canvas.addEventListener('mouseleave', () => {
             if (!isFrozen) {
                 drawBaseGraph();
-                document.getElementById('lever-results').style.display = 'none';
+                document.getElementById('lever-results').className = "hidden-data";
                 document.getElementById('pos-state').innerText = "Außerhalb";
                 document.getElementById('pos-state').className = "highlight";
                 drawMicrostructure('outside', 0);
