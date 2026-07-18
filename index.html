@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V6)</title>
+    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V7)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -70,10 +70,11 @@
         .state-solid { color: #38a169; background-color: #f0fff4; }
         .state-twophase { color: #e53e3e; background-color: #fff5f5; }
         
+        /* KORREKTUR: min-height statt fester height verhindert das Abschneiden der Werte */
         #lever-results {
             transition: opacity 0.2s ease;
-            height: 220px; 
-            overflow: hidden;
+            min-height: 290px; 
+            overflow: visible;
         }
         .hidden-data {
             opacity: 0.2;
