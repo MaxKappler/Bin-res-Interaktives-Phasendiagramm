@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interaktives Phasendiagramm: Schmelzzigarre (V2)</title>
+    <title>Interaktives Phasendiagramm: Schmelzzigarre & Gefüge (V3)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 1200px;
+            max-width: 1250px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
@@ -37,21 +37,22 @@
         }
         .panel {
             flex: 1;
-            min-width: 350px;
+            min-width: 360px;
             max-width: 450px;
             background: white;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         .data-group {
-            margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid #edf2f7;
         }
         .data-group:last-child {
             border-bottom: none;
-            margin-bottom: 0;
             padding-bottom: 0;
         }
         .data-group h3 { margin: 0 0 12px 0; color: #2b6cb0; font-size: 1.15em; border-left: 4px solid #3182ce; padding-left: 8px; }
@@ -67,20 +68,37 @@
         .state-liquid { color: #3182ce; background-color: #ebf8ff; }
         .state-solid { color: #38a169; background-color: #f0fff4; }
         .state-twophase { color: #e53e3e; background-color: #fff5f5; }
+        
+        /* Styling für das Gefügebild */
+        .microstructure-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e0;
+        }
+        .microstructure-box h4 { margin: 0 0 10px 0; color: #4a5568; }
+        #microstructureCanvas {
+            border: 2px solid #4a5568;
+            border-radius: 50%; /* Macht das Gefügebild rund, wie durch ein Mikroskop gesehen */
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
 
-    <h1>Interaktives Binäres Phasendiagramm (Schmelzzigarre)</h1>
-    <p class="subtitle">Bewege deine Maus über das vergrößerte Diagramm. Im Zweiphasengebiet wird der Hebelarm (Konode) und das Hebelgesetz automatisch aktiviert.</p>
+    <h1>Interaktives Phasendiagramm (Schmelzzigarre)</h1>
+    <p class="subtitle">Bewege deine Maus über das Diagramm. Neben den Werten berechnet das System nun auch das schematische Mikrogefüge live im "Mikroskop".</p>
 
     <div class="container">
-        <!-- Größeres Diagramm (Canvas erhöht von 500x500 auf 700x650) -->
+        <!-- Phasendiagramm -->
         <div class="canvas-container">
             <canvas id="diagram" width="700" height="650"></canvas>
         </div>
 
-        <!-- Datenanzeige -->
+        <!-- Datenanzeige & Gefüge -->
         <div class="panel">
             <div class="data-group">
                 <h3>Aktueller Zustand</h3>
@@ -89,23 +107,29 @@
                 <div class="data-row"><span>Phase / Gebiet:</span><span class="highlight" id="pos-state">Außerhalb</span></div>
             </div>
 
+            <!-- Dynamisches Gefügebild (Mikroskop-Ansicht) -->
+            <div class="microstructure-box">
+                <h4>Schematisches Gefügebild (α / Schmelze)</h4>
+                <canvas id="microstructureCanvas" width="180" height="180"></canvas>
+            </div>
+
             <div id="lever-results" style="display: none;">
                 <div class="data-group">
                     <h3>Phasenanteile (Hebelgesetz)</h3>
-                    <div class="data-row"><span>Anteil Schmelze (Flüssig, Schmelze):</span><span class="value" id="share-liq" style="color: #3182ce;">-</span></div>
-                    <div class="data-row"><span>Anteil Mischkristall (Fest, α):</span><span class="value" id="share-sol" style="color: #38a169;">-</span></div>
+                    <div class="data-row"><span>Anteil Schmelze (L):</span><span class="value" id="share-liq" style="color: #3182ce;">-</span></div>
+                    <div class="data-row"><span>Anteil Mischkristall (α):</span><span class="value" id="share-sol" style="color: #38a169;">-</span></div>
                 </div>
 
                 <div class="data-group">
                     <h3>Zusammensetzung der Schmelze (L)</h3>
-                    <div class="data-row"><span>Komponente A in Schmelze:</span><span class="value" id="comp-liq-a">-</span></div>
-                    <div class="data-row"><span>Komponente B in Schmelze:</span><span class="value" id="comp-liq-b">-</span></div>
+                    <div class="data-row"><span>Komponente A:</span><span class="value" id="comp-liq-a">-</span></div>
+                    <div class="data-row"><span>Komponente B:</span><span class="value" id="comp-liq-b">-</span></div>
                 </div>
 
                 <div class="data-group">
                     <h3>Zusammensetzung des Mischkristalls (α)</h3>
-                    <div class="data-row"><span>Komponente A in Festphase:</span><span class="value" id="comp-sol-a">-</span></div>
-                    <div class="data-row"><span>Komponente B in Festphase:</span><span class="value" id="comp-sol-b">-</span></div>
+                    <div class="data-row"><span>Komponente A:</span><span class="value" id="comp-sol-a">-</span></div>
+                    <div class="data-row"><span>Komponente B:</span><span class="value" id="comp-sol-b">-</span></div>
                 </div>
             </div>
         </div>
@@ -114,60 +138,52 @@
     <script>
         const canvas = document.getElementById('diagram');
         const ctx = canvas.getContext('2d');
+        
+        const microCanvas = document.getElementById('microstructureCanvas');
+        const mCtx = microCanvas.getContext('2d');
 
-        // Optimierte Ränder für das größere Canvas
         const padding = { top: 50, right: 50, bottom: 60, left: 70 };
         const graphWidth = canvas.width - padding.left - padding.right;
         const graphHeight = canvas.height - padding.top - padding.bottom;
 
-        // Thermodynamische Parameter
-        const TA = 800;  // Schmelzpunkt reines A
-        const TB = 1200; // Schmelzpunkt reines B
+        const TA = 800;  
+        const TB = 1200; 
         const Tmin = 600;
         const Tmax = 1400;
 
-        // Korrigierte Schmelzzigarren-Gleichungen: Liquidus muss IMMER ÜBER Solidus liegen!
-        // x = Molenbruch / Anteil von B (0 bis 1)
-        function getLiquidus(x) {
-            return TA + (TB - TA) * x + 110 * x * (1 - x);
-        }
+        // Festgelegte Keim-Zentren für das Zweiphasengebiet (damit Körner nicht wild springen)
+        const grainNuclei = [
+            {x: 45, y: 50, rMax: 35},   {x: 135, y: 45, rMax: 38},
+            {x: 90, y: 95, rMax: 42},   {x: 40, y: 135, rMax: 35},
+            {x: 140, y: 130, rMax: 38}, {x: 90, y: 35, rMax: 30},
+            {x: 35, y: 90, rMax: 30},   {x: 145, y: 90, rMax: 32}
+        ];
 
-        function getSolidus(x) {
-            return TA + (TB - TA) * x - 90 * x * (1 - x);
-        }
+        function getLiquidus(x) { return TA + (TB - TA) * x + 110 * x * (1 - x); }
+        function getSolidus(x) { return TA + (TB - TA) * x - 90 * x * (1 - x); }
 
-        // Pixelkoordinaten in physikalische Werte umrechnen
         function pixelToVal(px, py) {
             const x = (px - padding.left) / graphWidth;
             const temp = Tmax - ((py - padding.top) / graphHeight) * (Tmax - Tmin);
             return { x: Math.max(0, Math.min(1, x)), temp: temp };
         }
 
-        // Numerische Suche (Bisektion) für die Zusammensetzung bei gegebener Temperatur T auf einer Kurve
         function findXForT(temp, targetCurve) {
             let low = 0, high = 1;
             if (temp < Math.min(TA, TB) - 100 || temp > Math.max(TA, TB) + 100) return 0;
-            
             for(let i = 0; i < 24; i++) {
                 let mid = (low + high) / 2;
-                let tMid = targetCurve(mid);
-                if (tMid > temp) {
-                    high = mid;
-                } else {
-                    low = mid;
-                }
+                if (targetCurve(mid) > temp) high = mid; else low = mid;
             }
             return (low + high) / 2;
         }
 
         function drawBaseGraph() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Hintergrund-Gitter zeichnen
             ctx.strokeStyle = '#f0f0f0';
             ctx.lineWidth = 1;
             
-            // Horizontale Temperatur-Linien
+            // Y-Achse
             ctx.fillStyle = '#4a5568';
             ctx.font = '13px sans-serif';
             ctx.textAlign = 'right';
@@ -175,84 +191,130 @@
             for (let t = Tmin; t <= Tmax; t += 100) {
                 const y = padding.top + graphHeight * (1 - (t - Tmin) / (Tmax - Tmin));
                 ctx.fillText(t + " °C", padding.left - 12, y);
-                
-                ctx.beginPath();
-                ctx.moveTo(padding.left, y);
-                ctx.lineTo(padding.left + graphWidth, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(padding.left + graphWidth, y); ctx.stroke();
             }
 
-            // Vertikale Konzentrations-Linien
+            // X-Achse
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
             for (let xVal = 0; xVal <= 1; xVal += 0.1) {
                 const x = padding.left + xVal * graphWidth;
-                
-                ctx.beginPath();
-                ctx.moveTo(x, padding.top);
-                ctx.lineTo(x, padding.top + graphHeight);
-                ctx.stroke();
-
+                ctx.beginPath(); ctx.moveTo(x, padding.top); ctx.lineTo(x, padding.top + graphHeight); ctx.stroke();
                 ctx.fillText((xVal * 100).toFixed(0) + "%", x, padding.top + graphHeight + 10);
             }
 
-            // Haupt-Achsenrahmen
-            ctx.strokeStyle = '#2d3748';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 2;
             ctx.strokeRect(padding.left, padding.top, graphWidth, graphHeight);
             
-            // Achsen-Labels
-            ctx.font = 'bold 14px sans-serif';
-            ctx.fillStyle = '#1a202c';
+            ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#1a202c';
             ctx.fillText("Konzentration von Komponente B ➔", padding.left + graphWidth/2, padding.top + graphHeight + 35);
-            
-            ctx.textAlign = 'left';
-            ctx.fillText("0% B (100% A)", padding.left, padding.top + graphHeight + 35);
-            ctx.textAlign = 'right';
-            ctx.fillText("100% B (0% A)", padding.left + graphWidth, padding.top + graphHeight + 35);
+            ctx.textAlign = 'left'; ctx.fillText("0% B (100% A)", padding.left, padding.top + graphHeight + 35);
+            ctx.textAlign = 'right'; ctx.fillText("100% B (0% A)", padding.left + graphWidth, padding.top + graphHeight + 35);
 
-            // Kurven zeichnen (Liquidus & Solidus)
+            // Kurven
             ctx.lineWidth = 3;
-            
-            // 1. Liquidus (Blau)
-            ctx.strokeStyle = '#3182ce';
-            ctx.beginPath();
+            // Liquidus
+            ctx.strokeStyle = '#3182ce'; ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
-                let xVal = i / 100;
-                let yVal = getLiquidus(xVal);
-                let px = padding.left + xVal * graphWidth;
-                let py = padding.top + graphHeight * (1 - (yVal - Tmin) / (Tmax - Tmin));
+                let px = padding.left + (i/100) * graphWidth;
+                let py = padding.top + graphHeight * (1 - (getLiquidus(i/100) - Tmin) / (Tmax - Tmin));
                 if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
             }
             ctx.stroke();
 
-            // 2. Solidus (Grün)
-            ctx.strokeStyle = '#38a169';
-            ctx.beginPath();
+            // Solidus
+            ctx.strokeStyle = '#38a169'; ctx.beginPath();
             for (let i = 0; i <= 100; i++) {
-                let xVal = i / 100;
-                let yVal = getSolidus(xVal);
-                let px = padding.left + xVal * graphWidth;
-                let py = padding.top + graphHeight * (1 - (yVal - Tmin) / (Tmax - Tmin));
+                let px = padding.left + (i/100) * graphWidth;
+                let py = padding.top + graphHeight * (1 - (getSolidus(i/100) - Tmin) / (Tmax - Tmin));
                 if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
             }
             ctx.stroke();
 
-            // PHASENBESCHRIFTUNGEN OHNE ÜBERLAPPUNG
+            // Labels
             ctx.font = 'bold 15px sans-serif';
-            
-            // Schmelze weit oben platzieren
-            ctx.fillStyle = '#2b6cb0';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#2b6cb0'; ctx.textAlign = 'center';
             ctx.fillText("Schmelze (Einphasig Flüssig L)", padding.left + graphWidth / 2, padding.top + 30);
-            
-            // Mischkristall weit unten platzieren
             ctx.fillStyle = '#276749';
             ctx.fillText("Mischkristall (Einphasig Fest α)", padding.left + graphWidth / 2, padding.top + graphHeight - 40);
-            
-            // Zweiphasengebiet direkt im Zentrum des Linsensystems beschriftet
             ctx.fillStyle = '#9b2c2c';
             ctx.fillText("Zweiphasengebiet (Schmelze L + α)", padding.left + graphWidth / 2, padding.top + graphHeight / 2 - 5);
+        }
+
+        // DYNAMISCHES ZEICHNEN DES GEFÜGEBILDES
+        function drawMicrostructure(state, solidShare) {
+            const w = microCanvas.width;
+            const h = microCanvas.height;
+            mCtx.clearRect(0, 0, w, h);
+
+            if (state === 'liquid') {
+                // 1. Reine Schmelze (Hellblau)
+                mCtx.fillStyle = '#e6f4ea'; // Fallback / Reset
+                mCtx.fillStyle = '#dbeafe';
+                mCtx.fillRect(0, 0, w, h);
+                
+                // Ein paar dezente Wellenlinien simulieren Flüssigkeit
+                mCtx.strokeStyle = '#93c5fd'; mCtx.lineWidth = 2;
+                for(let i=1; i<=3; i++) {
+                    mCtx.beginPath(); mCtx.arc(w/2, h/2 - 20 + i*20, 60, 0.2, Math.PI-0.2); mCtx.stroke();
+                }
+            } 
+            else if (state === 'twophase') {
+                // 2. Zweiphasengebiet (Körner wachsen in Flüssigkeit)
+                mCtx.fillStyle = '#dbeafe'; // Blaue Basisschmelze
+                mCtx.fillRect(0, 0, w, h);
+
+                const factor = solidShare / 100; // Skalierung von 0 bis 1
+
+                mCtx.fillStyle = '#a7f3d0';   // Grüne α-Körner
+                mCtx.strokeStyle = '#059669'; // Dunkelgrüne Phasen-/Korngrenze
+                mCtx.lineWidth = 2;
+
+                grainNuclei.forEach(n => {
+                    let currentRadius = n.rMax * factor;
+                    if(currentRadius > 2) {
+                        mCtx.beginPath();
+                        mCtx.arc(n.x, n.y, currentRadius, 0, 2 * Math.PI);
+                        mCtx.fill();
+                        mCtx.stroke();
+                    }
+                });
+            } 
+            else if (state === 'solid') {
+                // 3. Reiner Mischkristall (Polyeder-Kristallgefüge)
+                // Zeichne dichte, aneinandergrenzende Kristallite (Voronoi-Look über Linien nachempfunden)
+                mCtx.fillStyle = '#a7f3d0';
+                mCtx.fillRect(0, 0, w, h);
+                
+                mCtx.strokeStyle = '#047857'; mCtx.lineWidth = 2;
+                
+                // Vorgefertigtes Netz aus Korngrenzen zeichnen
+                const lines = [
+                    [[0,60],[50,55]], [[50,55],[90,35]], [[90,35],[135,45]], [[135,45],[180,30]],
+                    [[50,55],[45,100]], [[90,35],[90,95]], [[135,45],[140,90]],
+                    [[45,100],[0,120]], [[45,100],[90,95]], [[90,95],[140,90]], [[140,90],[180,110]],
+                    [[45,100],[40,140]], [[90,95],[90,150]], [[140,90],[145,145]],
+                    [[40,140],[0,150]], [[40,140],[90,150]], [[90,150],[145,145]], [[145,145],[180,160]]
+                ];
+                
+                lines.forEach(l => {
+                    mCtx.beginPath();
+                    mCtx.moveTo(l[0][0], l[0][1]);
+                    mCtx.lineTo(l[1][0], l[1][1]);
+                    mCtx.stroke();
+                });
+
+                // Optionale minimale Farbnuancen für unterschiedliche Kornorientierungen
+                mCtx.fillStyle = 'rgba(52, 211, 153, 0.2)';
+                mCtx.beginPath(); mCtx.moveTo(50,55); mCtx.lineTo(90,35); mCtx.lineTo(90,95); mCtx.lineTo(45,100); mCtx.fill();
+                mCtx.fillStyle = 'rgba(16, 185, 129, 0.1)';
+                mCtx.beginPath(); mCtx.moveTo(90,35); mCtx.lineTo(135,45); mCtx.lineTo(140,90); mCtx.lineTo(90,95); mCtx.fill();
+            }
+            else {
+                // Zustand außerhalb des Rasters
+                mCtx.fillStyle = '#e2e8f0';
+                mCtx.fillRect(0, 0, w, h);
+            }
         }
 
         function handleMouseMove(e) {
@@ -267,6 +329,7 @@
                 const stateEl = document.getElementById('pos-state');
                 stateEl.innerText = "Außerhalb";
                 stateEl.className = "highlight";
+                drawMicrostructure('outside', 0);
                 return;
             }
 
@@ -279,18 +342,25 @@
 
             let stateStr = "";
             let stateClass = "";
+            let microState = "";
             let inTwoPhase = false;
             let xL = 0, xS = 0;
+            let shareSolid = 0;
+            let shareLiquid = 100;
 
             if (currentT > tLiqAtX) {
                 stateStr = "Schmelze (Flüssig)";
                 stateClass = "highlight state-liquid";
+                microState = "liquid";
             } else if (currentT < tSolAtX) {
                 stateStr = "Mischkristall (Fest α)";
                 stateClass = "highlight state-solid";
+                microState = "solid";
+                shareSolid = 100;
             } else {
                 stateStr = "Zweiphasengebiet (L + α)";
                 stateClass = "highlight state-twophase";
+                microState = "twophase";
                 inTwoPhase = true;
                 
                 xL = findXForT(currentT, getLiquidus);
@@ -312,71 +382,52 @@
                 const pxL = padding.left + xL * graphWidth;
                 const pxS = padding.left + xS * graphWidth;
 
-                // 1. Ganzer Hebelarm (Konode) zeichnen
-                ctx.strokeStyle = '#e53e3e';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.moveTo(pxL, mouseY);
-                ctx.lineTo(pxS, mouseY);
-                ctx.stroke();
+                // Konode (Hebelarm)
+                ctx.strokeStyle = '#e53e3e'; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(pxL, mouseY); ctx.lineTo(pxS, mouseY); ctx.stroke();
 
-                // 2. Vertikale Projektionen zur X-Achse zeichnen
-                ctx.strokeStyle = '#a0aec0';
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([5, 5]);
-                
+                // Vertikale Projektionslinien
+                ctx.strokeStyle = '#a0aec0'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
                 ctx.beginPath(); ctx.moveTo(pxL, mouseY); ctx.lineTo(pxL, padding.top + graphHeight); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(pxS, mouseY); ctx.lineTo(pxS, padding.top + graphHeight); ctx.stroke();
-                
                 ctx.strokeStyle = '#4a5568';
                 ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX, padding.top + graphHeight); ctx.stroke();
                 ctx.setLineDash([]);
 
-                // 3. Markierungspunkte an den Linsengrenzen
-                ctx.fillStyle = '#3182ce'; 
-                ctx.beginPath(); ctx.arc(pxL, mouseY, 6, 0, 2*Math.PI); ctx.fill();
+                // Knotenpunkte
+                ctx.fillStyle = '#3182ce'; ctx.beginPath(); ctx.arc(pxL, mouseY, 6, 0, 2*Math.PI); ctx.fill();
                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.fillStyle = '#38a169'; ctx.beginPath(); ctx.arc(pxS, mouseY, 6, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
 
-                ctx.fillStyle = '#38a169'; 
-                ctx.beginPath(); ctx.arc(pxS, mouseY, 6, 0, 2*Math.PI); ctx.fill();
-                ctx.stroke();
-
-                // 4. Hebelgesetz-Rechnung
+                // Hebelberechnung
                 const totalLength = xS - xL;
-                let shareLiquid = 0;
-                let shareSolid = 0;
-
                 if (totalLength > 0) {
                     shareLiquid = ((xS - currentX) / totalLength) * 100;
                     shareSolid = ((currentX - xL) / totalLength) * 100;
-                    
                     shareLiquid = Math.max(0, Math.min(100, shareLiquid));
                     shareSolid = Math.max(0, Math.min(100, shareSolid));
                 }
 
                 document.getElementById('share-liq').innerText = `${shareLiquid.toFixed(1)}%`;
                 document.getElementById('share-sol').innerText = `${shareSolid.toFixed(1)}%`;
-
                 document.getElementById('comp-liq-a').innerText = `${((1 - xL) * 100).toFixed(1)}%`;
                 document.getElementById('comp-liq-b').innerText = `${(xL * 100).toFixed(1)}%`;
-
                 document.getElementById('comp-sol-a').innerText = `${((1 - xS) * 100).toFixed(1)}%`;
                 document.getElementById('comp-sol-b').innerText = `${(xS * 100).toFixed(1)}%`;
-
             } else {
                 document.getElementById('lever-results').style.display = 'none';
 
-                ctx.strokeStyle = '#cbd5e0';
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([4, 4]);
-                
+                ctx.strokeStyle = '#cbd5e0'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
                 ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(padding.left, mouseY); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(mouseX, padding.top + graphHeight); ctx.stroke();
                 ctx.setLineDash([]);
             }
 
-            ctx.fillStyle = '#1a202c';
-            ctx.beginPath(); ctx.arc(mouseX, mouseY, 5, 0, 2*Math.PI); ctx.fill();
+            // Fadenkreuzpunkt
+            ctx.fillStyle = '#1a202c'; ctx.beginPath(); ctx.arc(mouseX, mouseY, 5, 0, 2*Math.PI); ctx.fill();
+
+            // Gefügebild rendern
+            drawMicrostructure(microState, shareSolid);
         }
 
         canvas.addEventListener('mousemove', handleMouseMove);
@@ -386,9 +437,12 @@
             const stateEl = document.getElementById('pos-state');
             stateEl.innerText = "Außerhalb";
             stateEl.className = "highlight";
+            drawMicrostructure('outside', 0);
         });
 
+        // Initialer Zustand beim Seitenstart
         drawBaseGraph();
+        drawMicrostructure('outside', 0);
     </script>
 </body>
 </html>
